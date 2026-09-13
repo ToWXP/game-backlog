@@ -1,0 +1,12 @@
+node_modules
+dist
+.env.local
+*.log
+
+# local AI-assistant tooling (installed skills), not part of the site
+.agents/
+.claude/
+skills-lock.json
+
+# watermarked stock preview used only as a style reference; not licensed for publishing
+bookshelf.png

@@ -1,0 +1,1384 @@
+/*
+ * The Backlog: a room with a pixel-art bookcase.
+ * Colors come from the pixel bookshelf logo; the UI uses stepped "pixel" corners instead of rounding.
+ */
+
+:root {
+  /* --s scales the whole bookcase (smaller on phones). */
+  --s: 1;
+  --row-h: calc(296px * var(--s)); /* space for books in one row */
+  --plank: calc(20px * var(--s)); /* shelf board thickness */
+  --depth: calc(150px * var(--s)); /* book depth = width of the front cover */
+  --px: 3px; /* one "pixel" of UI outline */
+
+  /* room */
+  --wall: #8c98d6;
+  --on-wall-soft: #2c2540; /* secondary text placed directly on the wall */
+  --floor: #7a4a30;
+  --floor-seam: #5f3822;
+
+  /* bookcase, same colors as the logo */
+  --wood: #d88a44;
+  --wood-light: #efaa62;
+  --wood-dark: #a8612b;
+  --wood-top: #5b2a1a;
+  --wood-side: #7e4127;
+  --inside: #3a1d10;
+  --inside-dark: #26120a;
+  --gold: #e8c170;
+
+  /* interface */
+  --ink: #1b0f09;
+  --ink-soft: #4a3f5a;
+  --paper: #fffaf0;
+  --paper-dim: #eee4cf;
+  --cobalt: #3452c9;
+  --xp: #2f9c4f;
+  --danger: #c23a2e;
+
+  color-scheme: light;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+}
+
+body {
+  min-height: 100vh;
+  background: var(--wall);
+  color: var(--ink);
+  font-family: 'Josefin Sans', system-ui, sans-serif;
+  font-size: 16px;
+  line-height: 1.4;
+  overflow-x: clip;
+}
+
+button,
+input,
+select {
+  font: inherit;
+  color: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+img {
+  display: block;
+  max-width: 100%;
+}
+
+:focus-visible {
+  outline: 3px solid var(--cobalt);
+  outline-offset: 5px;
+}
+
+.img-placeholder {
+  background: var(--spine, var(--wood-top));
+}
+
+/*
+ * Pixel frame. The outline is four hard shadows, one per side, which leaves each corner pixel
+ * empty: the stepped corner of pixel art. The inset shadows are the light/dark bevel the logo's
+ * frame has. Pressed states swap the bevel through --hi / --lo.
+ */
+.search,
+.results,
+.icon-btn,
+.tab,
+.sort select,
+.shelf-tag,
+.modal,
+.modal-close,
+.status-btn,
+.stepper,
+.length-input,
+.btn,
+.field input,
+.lb-nav,
+.lb-close {
+  --edge: var(--ink);
+  --hi: rgba(255, 255, 255, 0.6);
+  --lo: rgba(27, 15, 9, 0.16);
+  border: 0;
+  border-radius: 0;
+  box-shadow:
+    0 calc(var(--px) * -1) 0 0 var(--edge),
+    0 var(--px) 0 0 var(--edge),
+    calc(var(--px) * -1) 0 0 0 var(--edge),
+    var(--px) 0 0 0 var(--edge),
+    inset var(--px) var(--px) 0 0 var(--hi),
+    inset calc(var(--px) * -1) calc(var(--px) * -1) 0 0 var(--lo);
+}
+
+.swatch {
+  display: inline-block;
+  flex-shrink: 0;
+  width: 10px;
+  height: 10px;
+}
+
+/* ---------- Page ---------- */
+
+.room {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.app {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  width: 100%;
+  max-width: 1320px;
+  margin: 0 auto;
+  padding: 32px 24px 0;
+}
+
+.topbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 18px 24px;
+  margin-bottom: 26px;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+/* pixel art: keep it at a whole-number scale of its pixel grid so edges stay crisp */
+.brand-logo {
+  flex-shrink: 0;
+  width: 60px;
+  height: auto;
+}
+
+.brand h1 {
+  margin: 0;
+  font-size: 44px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.01em;
+}
+
+.brand p {
+  margin: 6px 0 0;
+  color: var(--on-wall-soft);
+}
+
+.icon-btn {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  margin: var(--px);
+  background: var(--paper);
+  color: var(--ink);
+}
+
+.icon-btn:hover {
+  background: var(--paper-dim);
+}
+
+/* ---------- Add game search ---------- */
+
+.add-game {
+  position: relative;
+  flex: 1;
+  min-width: 260px;
+  max-width: 520px;
+  margin-left: auto;
+}
+
+.search {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 48px;
+  margin: var(--px);
+  padding: 0 14px;
+  background: var(--paper);
+}
+
+.search:focus-within {
+  --edge: var(--cobalt);
+}
+
+.search input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  padding: 3px 0 0; /* Josefin Sans sits high; this centers it optically */
+  border: 0;
+  outline: 0;
+  background: transparent;
+  font-size: 17px;
+}
+
+.search input::placeholder {
+  color: #857a8c;
+}
+
+.results {
+  position: absolute;
+  top: calc(100% + 10px);
+  left: var(--px);
+  right: var(--px);
+  z-index: 50;
+  max-height: 70vh;
+  overflow-y: auto;
+  padding: 6px;
+  background: var(--paper);
+}
+
+.result {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 8px;
+  border: 0;
+  background: none;
+  text-align: left;
+}
+
+.result.active {
+  background: var(--paper-dim);
+}
+
+.result:disabled {
+  cursor: progress;
+}
+
+.result-thumb {
+  flex-shrink: 0;
+  width: 72px;
+  height: 42px;
+  margin: 2px;
+  object-fit: cover;
+  box-shadow: 0 0 0 2px var(--ink);
+}
+
+.result-main {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.result-title {
+  overflow: hidden;
+  font-weight: 600;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.result-meta {
+  font-size: 14px;
+  color: var(--ink-soft);
+}
+
+.tag {
+  flex-shrink: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+.tag-add {
+  color: var(--cobalt);
+  visibility: hidden;
+}
+
+.result.active .tag-add {
+  visibility: visible;
+}
+
+.results-msg {
+  display: grid;
+  justify-items: start;
+  gap: 12px;
+  padding: 12px;
+  color: var(--ink-soft);
+  line-height: 1.5;
+}
+
+.results-msg p {
+  margin: 0;
+}
+
+.error-text {
+  color: var(--danger);
+}
+
+/* three blocks that appear one by one */
+.spinner {
+  flex-shrink: 0;
+  width: 5px;
+  height: 5px;
+  margin-right: 18px;
+  background: currentColor;
+  animation: dots 0.9s steps(1) infinite;
+}
+
+.spinner-light {
+  color: var(--cobalt);
+}
+
+/* ---------- Toolbar ---------- */
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 40px;
+}
+
+.tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: var(--px);
+  padding: 10px 14px 7px;
+  background: var(--paper);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.tab:hover {
+  background: var(--paper-dim);
+}
+
+.tab .n {
+  font-weight: 400;
+  color: var(--ink-soft);
+}
+
+.tab.active {
+  --hi: rgba(255, 255, 255, 0.14);
+  --lo: rgba(0, 0, 0, 0.45);
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.tab.active .n {
+  color: #c9bfd8;
+}
+
+.sort {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--on-wall-soft);
+  font-size: 15px;
+}
+
+.sort select {
+  height: 40px;
+  margin: var(--px);
+  padding: 3px 34px 0 12px;
+  appearance: none;
+  background: var(--paper)
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 5 3' shape-rendering='crispEdges'%3E%3Cpath d='M0 0h5v1H0zM1 1h3v1H1zM2 2h1v1H2z' fill='%231b0f09'/%3E%3C/svg%3E")
+    no-repeat right 12px center / 10px 6px;
+  color: var(--ink);
+  font-weight: 600;
+}
+
+/* ---------- Bookcase ---------- */
+
+.bookcase {
+  position: relative;
+  /* stand on the floor even when the shelf is short; leave room for the side panel */
+  margin: auto 20px 0 0;
+  padding: calc(14px * var(--s));
+  background: var(--wood);
+  box-shadow:
+    inset 4px 4px 0 var(--wood-light),
+    inset -4px -4px 0 var(--wood-dark);
+}
+
+/* Top and side of the case, drawn like the logo: going back to the right with stair-stepped edges. */
+.bookcase::before,
+.bookcase::after {
+  content: '';
+  position: absolute;
+  top: -12px;
+}
+
+.bookcase::before {
+  left: 0;
+  width: calc(100% + 20px);
+  height: 12px;
+  background: var(--wood-top);
+  clip-path: polygon(
+    0 12px, 0 10px, 4px 10px, 4px 8px, 8px 8px, 8px 6px, 12px 6px, 12px 4px, 16px 4px, 16px 2px, 20px 2px, 20px 0,
+    100% 0,
+    100% 2px, calc(100% - 4px) 2px, calc(100% - 4px) 4px, calc(100% - 8px) 4px, calc(100% - 8px) 6px,
+    calc(100% - 12px) 6px, calc(100% - 12px) 8px, calc(100% - 16px) 8px, calc(100% - 16px) 10px,
+    calc(100% - 20px) 10px, calc(100% - 20px) 12px
+  );
+}
+
+.bookcase::after {
+  left: 100%;
+  width: 20px;
+  height: calc(100% + 12px);
+  background: var(--wood-side);
+  clip-path: polygon(
+    0 10px, 4px 10px, 4px 8px, 8px 8px, 8px 6px, 12px 6px, 12px 4px, 16px 4px, 16px 2px, 20px 2px,
+    20px calc(100% - 10px),
+    16px calc(100% - 10px), 16px calc(100% - 8px), 12px calc(100% - 8px), 12px calc(100% - 6px),
+    8px calc(100% - 6px), 8px calc(100% - 4px), 4px calc(100% - 4px), 4px calc(100% - 2px), 0 calc(100% - 2px)
+  );
+}
+
+.bookcase-inner {
+  background: var(--inside);
+}
+
+.shelf {
+  position: relative;
+  /* hard shadow under the board (or frame) above */
+  background: linear-gradient(var(--inside-dark), var(--inside-dark)) top / 100% calc(6px * var(--s)) no-repeat;
+}
+
+/* the label hangs in the empty space above the first row of books */
+.shelf-tag {
+  position: absolute;
+  top: calc(12px * var(--s));
+  left: calc(16px * var(--s) + var(--px));
+  z-index: 5;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: 6px 10px 3px;
+  background: var(--paper);
+  font-size: max(12px, calc(14px * var(--s)));
+  font-weight: 600;
+  pointer-events: none;
+}
+
+.shelf-count {
+  font-weight: 400;
+  color: var(--ink-soft);
+}
+
+/*
+ * Books wrap onto as many rows as needed. Every slot is exactly one row tall,
+ * so a repeating gradient can paint a board under each row.
+ */
+.shelf-rows {
+  --period: calc(var(--row-h) + var(--plank));
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  align-content: flex-start;
+  column-gap: calc(3px * var(--s));
+  row-gap: 0;
+  min-height: var(--period);
+  padding: 0 calc(16px * var(--s));
+  background:
+    /* hard shadow under each board, skipping the first row (the section has its own) */
+    repeating-linear-gradient(
+        180deg,
+        var(--inside-dark) 0 calc(6px * var(--s)),
+        transparent calc(6px * var(--s)) var(--period)
+      )
+      0 100% / 100% calc(100% - var(--period)) no-repeat,
+    /* the boards: lit top edge, face, dark bottom edge */
+    repeating-linear-gradient(
+      180deg,
+      transparent 0 var(--row-h),
+      var(--wood-light) var(--row-h) calc(var(--row-h) + 4px),
+      var(--wood) calc(var(--row-h) + 4px) calc(var(--period) - 4px),
+      var(--wood-dark) calc(var(--period) - 4px) var(--period)
+    );
+}
+
+.shelf-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: var(--period);
+  margin: 0;
+  padding: 0 16px var(--plank);
+  color: #d9c3a8;
+  font-size: 18px;
+  text-align: center;
+}
+
+/* ---------- Books ---------- */
+
+.slot {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: flex-end;
+  height: var(--period);
+  margin: 0;
+  padding: 0 0 var(--plank);
+  border: 0;
+  background: none;
+}
+
+.slot:hover,
+.slot:focus-visible {
+  z-index: 20;
+}
+
+/* the book popping out is the focus indicator */
+.slot:focus-visible {
+  outline: none;
+}
+
+.book {
+  --bw: calc(var(--w) * 1px * var(--s));
+  --bh: calc(var(--h) * 1px * var(--s));
+  position: relative;
+  width: var(--bw);
+  height: var(--bh);
+  transform-style: preserve-3d;
+  /* rotate around the middle of the book, not the spine */
+  transform-origin: 50% 50% calc(var(--depth) / -2);
+  transform: perspective(1200px) translate3d(0, 0, 0) rotateY(0deg);
+  transition: transform 0.55s cubic-bezier(0.2, 0.85, 0.25, 1.12);
+}
+
+/* The pop-out: slide off the shelf toward you and turn to show the cover. */
+.slot:hover .book,
+.slot:focus-visible .book {
+  transform: perspective(1200px) translate3d(0, calc(-18px * var(--s)), calc(80px * var(--s))) rotateY(-54deg);
+}
+
+.spine {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background: var(--spine);
+}
+
+.spine-art {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* gold bands like the logo's books, plus a lit left edge and a shaded right edge */
+.spine::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(var(--gold), var(--gold)) 0 calc(8px * var(--s)) / 100% calc(3px * var(--s)) no-repeat,
+    linear-gradient(var(--gold), var(--gold)) 0 calc(100% - 8px * var(--s)) / 100% calc(3px * var(--s)) no-repeat,
+    linear-gradient(rgba(255, 255, 255, 0.25), rgba(255, 255, 255, 0.25)) left / calc(3px * var(--s)) 100% no-repeat,
+    linear-gradient(rgba(0, 0, 0, 0.38), rgba(0, 0, 0, 0.38)) right / calc(4px * var(--s)) 100% no-repeat;
+}
+
+.spine-score {
+  position: absolute;
+  top: calc(18px * var(--s));
+  left: 0;
+  right: 0;
+  z-index: 1;
+  display: flex;
+  justify-content: center;
+}
+
+/* title on a paper label, like a library spine */
+.spine-title {
+  position: absolute;
+  top: calc(42px * var(--s));
+  left: 50%;
+  z-index: 1;
+  max-height: calc(100% - 76px * var(--s));
+  overflow: hidden;
+  padding: calc(8px * var(--s)) calc(3px * var(--s)) calc(6px * var(--s));
+  transform: translateX(-50%);
+  writing-mode: vertical-rl;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  background: var(--paper);
+  box-shadow: 0 0 0 calc(2px * var(--s)) var(--ink);
+  font-size: max(9px, calc(var(--fs, 14) * 1px * var(--s)));
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.spine-progress {
+  position: absolute;
+  left: calc(7px * var(--s));
+  right: calc(8px * var(--s));
+  bottom: calc(18px * var(--s));
+  z-index: 1;
+}
+
+/* Front cover: hinged on the spine's right edge, folded back into the shelf. */
+.cover {
+  position: absolute;
+  top: 0;
+  left: 100%;
+  width: var(--depth);
+  height: 100%;
+  overflow: hidden;
+  background: var(--spine);
+  transform-origin: 0 50%;
+  transform: rotateY(90deg);
+  backface-visibility: hidden;
+}
+
+.cover-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* hinge */
+.cover::before {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 0;
+  z-index: 1;
+  width: 6px;
+  background: rgba(0, 0, 0, 0.4);
+}
+
+.cover-band {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: grid;
+  gap: 7px;
+  padding: 10px 10px 12px 14px;
+  background: var(--ink);
+  color: var(--paper);
+  text-align: left;
+}
+
+.cover-title {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  font-size: max(12px, calc(15px * var(--s)));
+  font-weight: 700;
+  line-height: 1.15;
+}
+
+.cover-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* ---------- Progress (a segmented bar, like an XP bar) ---------- */
+
+.progress {
+  height: 12px;
+  margin: 2px;
+  background: var(--paper-dim);
+  box-shadow: 0 0 0 2px var(--ink);
+}
+
+.progress > span {
+  display: block;
+  height: 100%;
+  background: repeating-linear-gradient(90deg, var(--xp) 0 8px, transparent 8px 10px);
+  transition: width 0.4s steps(6);
+}
+
+.progress-done > span {
+  background: repeating-linear-gradient(90deg, #d9a531 0 8px, transparent 8px 10px);
+}
+
+.cover-band .progress {
+  height: 6px;
+  margin: 0;
+  background: rgba(255, 250, 240, 0.2);
+  box-shadow: none;
+}
+
+.cover-band .progress > span {
+  background: repeating-linear-gradient(90deg, var(--xp) 0 5px, transparent 5px 6px);
+}
+
+.spine-progress.progress {
+  height: calc(5px * var(--s));
+  margin: 0;
+  box-shadow: 0 0 0 calc(2px * var(--s)) var(--ink);
+}
+
+.spine-progress > span,
+.spine-progress.progress-done > span {
+  background: var(--xp);
+}
+
+/* ---------- Metacritic badge ---------- */
+
+.mc {
+  display: inline-grid;
+  place-items: center;
+  flex-shrink: 0;
+  min-width: 34px;
+  height: 32px;
+  padding: 3px 6px 0;
+  font-weight: 700;
+  font-size: 16px;
+  color: #fff;
+}
+
+.mc-good {
+  background: #2f9c4f;
+}
+
+.mc-mixed {
+  background: #e0a526;
+  color: var(--ink);
+}
+
+.mc-bad {
+  background: var(--danger);
+}
+
+.mc-na {
+  background: var(--paper-dim);
+  color: var(--ink-soft);
+}
+
+.mc-xs {
+  min-width: 0;
+  height: calc(17px * var(--s));
+  padding: calc(2px * var(--s)) calc(3px * var(--s)) 0;
+  font-size: max(9px, calc(11px * var(--s)));
+  box-shadow: 0 0 0 calc(2px * var(--s)) var(--ink);
+}
+
+.mc-sm {
+  min-width: 26px;
+  height: 22px;
+  padding: 2px 4px 0;
+  font-size: 13px;
+}
+
+.mc-lg {
+  min-width: 60px;
+  height: 56px;
+  font-size: 28px;
+  box-shadow: 0 0 0 3px var(--ink);
+}
+
+/* ---------- Floor ---------- */
+
+.floor {
+  padding: 28px 24px 30px;
+  background:
+    linear-gradient(var(--wood-top), var(--wood-top)) top / 100% 6px no-repeat,
+    linear-gradient(var(--floor-seam), var(--floor-seam)) 0 55% / 100% 3px no-repeat,
+    repeating-linear-gradient(90deg, transparent 0 116px, var(--floor-seam) 116px 120px) 0 0 / 100% 55% no-repeat,
+    repeating-linear-gradient(90deg, transparent 0 56px, var(--floor-seam) 56px 60px, transparent 60px 120px)
+      0 100% / 100% 45% no-repeat,
+    var(--floor);
+  color: #f1d9bf;
+  font-size: 14px;
+  text-align: center;
+}
+
+.floor a {
+  color: var(--paper);
+}
+
+/* ---------- Modals ---------- */
+
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  overflow-y: auto;
+  padding: 6vh 20px;
+  background: rgba(38, 44, 92, 0.6);
+  animation: fade 0.15s steps(3);
+}
+
+.modal {
+  position: relative;
+  width: 100%;
+  max-width: 760px;
+  margin: var(--px);
+  padding: 24px;
+  background: var(--paper);
+  animation: pop 0.2s steps(4);
+}
+
+.modal-sm {
+  max-width: 480px;
+}
+
+.modal-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  background: var(--paper);
+  color: var(--ink);
+}
+
+.modal-close:hover {
+  background: var(--paper-dim);
+}
+
+.modal-art {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  max-height: 340px;
+  object-fit: cover;
+  box-shadow: 0 0 0 3px var(--ink);
+}
+
+.modal-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  margin-top: 24px;
+}
+
+.modal-head h2 {
+  margin: 0;
+  font-size: clamp(28px, 4.5vw, 40px);
+  font-weight: 700;
+  line-height: 1.05;
+}
+
+.byline {
+  margin: 8px 0 0;
+  color: var(--ink-soft);
+}
+
+.score {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  margin: 3px;
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+
+.modal-body {
+  display: grid;
+  gap: 28px;
+  margin-top: 26px;
+}
+
+.status-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.status-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: var(--px);
+  padding: 11px 14px 8px;
+  background: var(--paper);
+  font-weight: 600;
+}
+
+.status-btn:hover {
+  background: var(--paper-dim);
+}
+
+.status-btn.active {
+  --hi: rgba(255, 255, 255, 0.14);
+  --lo: rgba(0, 0, 0, 0.45);
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.hours {
+  display: grid;
+  gap: 14px;
+}
+
+.hours-inputs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 12px;
+  color: var(--ink-soft);
+}
+
+.stepper {
+  display: inline-flex;
+  align-items: center;
+  margin: var(--px);
+  background: var(--paper);
+}
+
+.stepper button {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 44px;
+  border: 0;
+  background: none;
+  color: var(--ink);
+}
+
+.stepper button:hover {
+  background: var(--paper-dim);
+}
+
+.num-input {
+  width: 64px;
+  height: 44px;
+  padding: 3px 0 0;
+  border: 0;
+  background: transparent;
+  font-size: 20px;
+  font-weight: 700;
+  text-align: center;
+  appearance: textfield;
+  -moz-appearance: textfield;
+}
+
+.stepper .num-input {
+  box-shadow:
+    inset 3px 0 0 var(--paper-dim),
+    inset -3px 0 0 var(--paper-dim);
+}
+
+.num-input::-webkit-inner-spin-button,
+.num-input::-webkit-outer-spin-button {
+  margin: 0;
+  -webkit-appearance: none;
+}
+
+.num-input:focus-visible {
+  outline: 3px solid var(--cobalt);
+  outline-offset: -3px;
+}
+
+.num-input::placeholder {
+  color: #9a8fa0;
+}
+
+.length-input {
+  margin: var(--px);
+  background: var(--paper);
+}
+
+.hours-bar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.hours-bar .progress {
+  flex: 1;
+}
+
+.pct {
+  min-width: 3.5ch;
+  font-weight: 700;
+  text-align: right;
+}
+
+.hours-note {
+  margin: 0;
+  color: var(--ink-soft);
+}
+
+.facts {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+}
+
+.facts div {
+  display: flex;
+  gap: 12px;
+}
+
+.facts dt {
+  flex-shrink: 0;
+  min-width: 5.5em;
+  font-weight: 700;
+}
+
+.facts dd {
+  margin: 0;
+  color: var(--ink-soft);
+}
+
+.description {
+  max-width: 68ch;
+  margin: 0;
+  line-height: 1.6;
+  white-space: pre-line;
+}
+
+.description.clamped {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-line-clamp: 5;
+  -webkit-box-orient: vertical;
+}
+
+.link-btn {
+  margin-top: 8px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--cobalt);
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.shots {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 14px;
+}
+
+.shot {
+  overflow: hidden;
+  aspect-ratio: 16 / 9;
+  margin: 3px;
+  padding: 0;
+  border: 0;
+  background: var(--inside);
+  box-shadow: 0 0 0 3px var(--ink);
+}
+
+.shot:hover {
+  box-shadow: 0 0 0 3px var(--cobalt);
+}
+
+.shot img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.modal-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin: var(--px);
+  padding: 11px 16px 8px;
+  background: var(--paper);
+  font-weight: 600;
+}
+
+.btn:hover:not(:disabled) {
+  background: var(--paper-dim);
+}
+
+.btn:active:not(:disabled) {
+  --hi: rgba(27, 15, 9, 0.18);
+  --lo: rgba(255, 255, 255, 0.4);
+}
+
+.btn:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.btn-primary,
+.btn-primary:hover:not(:disabled) {
+  --hi: rgba(255, 255, 255, 0.3);
+  --lo: rgba(0, 0, 0, 0.3);
+  background: var(--cobalt);
+  color: #fff;
+}
+
+.btn-danger {
+  color: var(--danger);
+}
+
+.btn-danger.confirm,
+.btn-danger.confirm:hover {
+  --hi: rgba(255, 255, 255, 0.3);
+  --lo: rgba(0, 0, 0, 0.3);
+  background: var(--danger);
+  color: #fff;
+}
+
+.hint {
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+.hint a {
+  color: var(--cobalt);
+}
+
+/* ---------- Settings ---------- */
+
+.settings {
+  display: grid;
+  gap: 30px;
+}
+
+.settings h2 {
+  margin: 0;
+  font-size: 30px;
+  font-weight: 700;
+}
+
+.field {
+  display: grid;
+  gap: 10px;
+}
+
+.field-label {
+  font-weight: 700;
+}
+
+.field input {
+  height: 46px;
+  margin: var(--px);
+  padding: 2px 12px 0;
+  background: #fff;
+  font-family: ui-monospace, monospace;
+  font-size: 15px;
+}
+
+.field input:focus-visible {
+  --edge: var(--cobalt);
+  outline: none;
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+/* ---------- Lightbox ---------- */
+
+.lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 56px 80px;
+  background: rgba(14, 12, 30, 0.94);
+  animation: fade 0.15s steps(3);
+}
+
+.lightbox img {
+  max-width: 100%;
+  max-height: 100%;
+  box-shadow: 0 0 0 3px var(--paper);
+}
+
+.lb-nav,
+.lb-close {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  background: var(--paper);
+  color: var(--ink);
+}
+
+.lb-nav {
+  top: 50%;
+  margin-top: -24px;
+}
+
+.lb-prev {
+  left: 16px;
+}
+
+.lb-next {
+  right: 16px;
+}
+
+.lb-close {
+  top: 16px;
+  right: 16px;
+}
+
+.lb-count {
+  position: absolute;
+  bottom: 18px;
+  left: 50%;
+  translate: -50% 0;
+  color: var(--paper);
+  font-size: 14px;
+}
+
+/* ---------- Toast: a game dialog box ---------- */
+
+.toast {
+  position: fixed;
+  bottom: 28px;
+  left: 50%;
+  z-index: 300;
+  max-width: calc(100% - 40px);
+  padding: 16px 22px 13px;
+  transform: translateX(-50%);
+  background: var(--ink);
+  color: var(--paper);
+  font-weight: 600;
+  box-shadow:
+    0 -3px 0 0 var(--ink),
+    0 3px 0 0 var(--ink),
+    -3px 0 0 0 var(--ink),
+    3px 0 0 0 var(--ink),
+    inset 0 0 0 3px var(--paper);
+  animation: fade 0.15s steps(3);
+}
+
+.toast-error {
+  background: var(--danger);
+}
+
+/* ---------- Animations ---------- */
+
+@keyframes fade {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes pop {
+  from {
+    transform: scale(0.94);
+    opacity: 0;
+  }
+}
+
+@keyframes dots {
+  0% {
+    box-shadow: none;
+  }
+  33% {
+    box-shadow: 9px 0 0 currentColor;
+  }
+  66%,
+  100% {
+    box-shadow:
+      9px 0 0 currentColor,
+      18px 0 0 currentColor;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .book {
+    transition-duration: 0.01s;
+  }
+
+  .progress > span {
+    transition: none;
+  }
+
+  .backdrop,
+  .modal,
+  .toast,
+  .lightbox {
+    animation: none;
+  }
+}
+
+/* ---------- Small screens ---------- */
+
+@media (max-width: 640px) {
+  :root {
+    --s: 0.72;
+  }
+
+  .app {
+    padding: 20px 14px 0;
+  }
+
+  /* let the subtitle wrap so the settings button stays on the title's line */
+  .brand {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+
+  .brand h1 {
+    font-size: 34px;
+  }
+
+  .brand-logo {
+    width: 45px;
+  }
+
+  .add-game {
+    order: 3;
+    flex-basis: 100%;
+    max-width: none;
+  }
+
+  .toolbar {
+    margin-bottom: 30px;
+  }
+
+  .modal {
+    padding: 16px;
+  }
+
+  .modal-head {
+    margin-top: 18px;
+  }
+
+  .lightbox {
+    padding: 64px 12px;
+  }
+}
