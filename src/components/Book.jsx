@@ -1,5 +1,6 @@
 import { formatHours, progressOf } from '../lib/progress';
 import { STATUS_BY_ID } from '../lib/statuses';
+import { StarIcon } from './Icons';
 import Metacritic from './Metacritic';
 import ProgressBar from './ProgressBar';
 import RawgImg from './RawgImg';
@@ -56,6 +57,11 @@ export default function Book({ game, onOpen }) {
             <span className="cover-title">{game.title}</span>
             <span className="cover-meta">
               <Metacritic score={game.metacritic} size="sm" />
+              {game.rating > 0 && (
+                <span className="cover-rating" aria-label={`Your rating: ${game.rating} of 5 stars`}>
+                  <StarIcon scale={1} /> {game.rating}
+                </span>
+              )}
               {played > 0 && <span>{hoursText}</span>}
             </span>
             {played > 0 && length && <ProgressBar pct={pct} />}

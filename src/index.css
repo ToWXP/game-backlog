@@ -101,6 +101,7 @@ img {
 .length-input,
 .btn,
 .field input,
+.notes,
 .lb-nav,
 .lb-close {
   --edge: var(--ink);
@@ -247,16 +248,25 @@ img {
   gap: 12px;
   width: 100%;
   padding: 8px;
-  border: 0;
-  background: none;
-  text-align: left;
 }
 
 .result.active {
   background: var(--paper-dim);
 }
 
-.result:disabled {
+.result-info {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  text-align: left;
+}
+
+.result-info:disabled {
   cursor: progress;
 }
 
@@ -295,13 +305,30 @@ img {
   color: var(--ink-soft);
 }
 
-.tag-add {
-  color: var(--cobalt);
-  visibility: hidden;
+.result-actions {
+  display: flex;
+  flex-shrink: 0;
+  gap: 6px;
 }
 
-.result.active .tag-add {
-  visibility: visible;
+.tag-add,
+.tag-wishlist {
+  padding: 5px 8px 3px;
+  border: 0;
+  background: var(--paper-dim);
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.tag-add:hover {
+  background: var(--cobalt);
+  color: #fff;
+}
+
+.tag-wishlist:hover {
+  background: #b3489a;
+  color: #fff;
 }
 
 .results-msg {
@@ -401,6 +428,20 @@ img {
     no-repeat right 12px center / 10px 6px;
   color: var(--ink);
   font-weight: 600;
+}
+
+.shelf-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px 20px;
+  margin-bottom: 30px;
+}
+
+.shelf-filters .search {
+  flex: 1;
+  min-width: 220px;
+  max-width: 420px;
 }
 
 /* ---------- Bookcase ---------- */
@@ -701,6 +742,13 @@ img {
   font-weight: 600;
 }
 
+.cover-rating {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  color: var(--gold);
+}
+
 /* ---------- Progress (a segmented bar, like an XP bar) ---------- */
 
 .progress {
@@ -931,6 +979,64 @@ img {
   --lo: rgba(0, 0, 0, 0.45);
   background: var(--ink);
   color: var(--paper);
+}
+
+.rating-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+}
+
+.rating {
+  display: flex;
+  gap: 4px;
+  margin: 0 calc(var(--px) * -1);
+}
+
+.star {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: rgba(27, 15, 9, 0.18);
+}
+
+.star:hover,
+.star:focus-visible {
+  color: var(--gold);
+}
+
+.star.filled {
+  color: var(--gold);
+}
+
+.finished-note {
+  color: var(--ink-soft);
+  font-size: 15px;
+}
+
+.notes-field {
+  display: grid;
+  gap: 10px;
+}
+
+.notes-field label {
+  font-weight: 700;
+}
+
+.notes {
+  width: 100%;
+  margin: var(--px);
+  padding: 12px;
+  background: var(--paper);
+  font-family: inherit;
+  font-size: 15px;
+  line-height: 1.5;
+  resize: vertical;
 }
 
 .hours {

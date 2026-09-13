@@ -132,3 +132,13 @@ export const MinusIcon = pixelIcon([
   '......',
   '......',
 ]);
+
+export const StarIcon = pixelIcon([
+  '...1...',
+  '...1...',
+  '.11111.',
+  '1111111',
+  '.11111.',
+  '11...11',
+  '1.....1',
+]);

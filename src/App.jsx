@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import logo from './assets/bookshelf-logo.svg';
 import AddGame from './components/AddGame';
 import GameModal from './components/GameModal';
-import { GearIcon } from './components/Icons';
+import { GearIcon, SearchIcon } from './components/Icons';
 import SettingsModal from './components/SettingsModal';
 import Shelf from './components/Shelf';
 import { fetchGame, getApiKey, saveApiKey } from './lib/rawg';
@@ -14,6 +14,7 @@ const SORTS = {
   title: { label: 'Title', fn: (a, b) => a.title.localeCompare(b.title) },
   metacritic: { label: 'Metacritic', fn: (a, b) => (b.metacritic ?? -1) - (a.metacritic ?? -1) },
   released: { label: 'Release date', fn: (a, b) => (b.released ?? '').localeCompare(a.released ?? '') },
+  rating: { label: 'My rating', fn: (a, b) => (b.rating ?? 0) - (a.rating ?? 0) },
 };
 
 export default function App() {
@@ -24,6 +25,9 @@ export default function App() {
   const [openId, setOpenId] = useState(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [toast, setToast] = useState(null);
+  const [libraryQuery, setLibraryQuery] = useState('');
+  const [genreFilter, setGenreFilter] = useState('all');
+  const [platformFilter, setPlatformFilter] = useState('all');
 
   const notify = useCallback((message, kind = 'info') => setToast({ message, kind, id: Date.now() }), []);
 
@@ -40,24 +44,37 @@ export default function App() {
     return c;
   }, [games]);
   const sorted = useMemo(() => [...games].sort((SORTS[sort] ?? SORTS.added).fn), [games, sort]);
+  const allGenres = useMemo(() => [...new Set(games.flatMap((g) => g.genres ?? []))].sort(), [games]);
+  const allPlatforms = useMemo(() => [...new Set(games.flatMap((g) => g.platforms ?? []))].sort(), [games]);
+
+  const q = libraryQuery.trim().toLowerCase();
+  const visible = sorted.filter(
+    (g) =>
+      (!q || g.title.toLowerCase().includes(q)) &&
+      (genreFilter === 'all' || g.genres?.includes(genreFilter)) &&
+      (platformFilter === 'all' || g.platforms?.includes(platformFilter)),
+  );
+  const filtering = Boolean(q) || genreFilter !== 'all' || platformFilter !== 'all';
+  const shelfGames = (id) => visible.filter((g) => g.status === id);
 
   const activeFilter = filter === 'all' || STATUS_BY_ID[filter] ? filter : 'all';
-  const shelves = activeFilter === 'all' ? STATUSES.filter((s) => counts[s.id] > 0) : [STATUS_BY_ID[activeFilter]];
+  const shelves =
+    activeFilter === 'all' ? STATUSES.filter((s) => shelfGames(s.id).length > 0) : [STATUS_BY_ID[activeFilter]];
   const openGame = games.find((g) => g.rawgId === openId) ?? null;
   const summary = games.length
     ? `${games.length} game${games.length === 1 ? '' : 's'} on the shelf, ${counts.finished} finished`
     : 'Add the games you want to play.';
 
   // Returns true when the game was added, so the search box knows to clear itself.
-  async function addGame(result) {
+  async function addGame(result, status = DEFAULT_STATUS) {
     try {
       const details = await fetchGame(result.rawgId);
       setGames((prev) =>
         prev.some((g) => g.rawgId === details.rawgId)
           ? prev
-          : [{ ...details, status: DEFAULT_STATUS, addedAt: Date.now() }, ...prev],
+          : [{ ...details, status, addedAt: Date.now() }, ...prev],
       );
-      notify(`Added ${details.title} to ${STATUS_BY_ID[DEFAULT_STATUS].shelf}.`);
+      notify(`Added ${details.title} to ${STATUS_BY_ID[status].shelf}.`);
       return true;
     } catch (err) {
       notify(err.message, 'error');
@@ -66,7 +83,16 @@ export default function App() {
   }
 
   function updateGame(rawgId, patch) {
-    setGames((prev) => prev.map((g) => (g.rawgId === rawgId ? { ...g, ...patch } : g)));
+    setGames((prev) =>
+      prev.map((g) => {
+        if (g.rawgId !== rawgId) return g;
+        const next = { ...g, ...patch };
+        if (patch.status === 'finished' && g.status !== 'finished' && !next.finishedAt) {
+          next.finishedAt = Date.now();
+        }
+        return next;
+      }),
+    );
   }
 
   function removeGame(rawgId) {
@@ -171,6 +197,42 @@ export default function App() {
           </label>
         </div>
 
+        {games.length > 0 && (
+          <div className="shelf-filters">
+            <label className="search">
+              <SearchIcon />
+              <input
+                value={libraryQuery}
+                onChange={(e) => setLibraryQuery(e.target.value)}
+                placeholder="Find a game on your shelf"
+                aria-label="Find a game on your shelf"
+              />
+            </label>
+            <label className="sort">
+              Genre
+              <select value={genreFilter} onChange={(e) => setGenreFilter(e.target.value)}>
+                <option value="all">All</option>
+                {allGenres.map((g) => (
+                  <option key={g} value={g}>
+                    {g}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="sort">
+              Platform
+              <select value={platformFilter} onChange={(e) => setPlatformFilter(e.target.value)}>
+                <option value="all">All</option>
+                {allPlatforms.map((p) => (
+                  <option key={p} value={p}>
+                    {p}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+        )}
+
         <main className="bookcase">
           <div className="bookcase-inner">
             {games.length === 0 ? (
@@ -179,13 +241,15 @@ export default function App() {
                 games={[]}
                 emptyText="Your shelf is empty. Search for a game above to add your first one."
               />
+            ) : filtering && visible.length === 0 ? (
+              <Shelf title="Your shelf" games={[]} emptyText="No games match your search or filters." />
             ) : (
               shelves.map((s) => (
                 <Shelf
                   key={s.id}
                   title={s.shelf}
                   color={s.color}
-                  games={sorted.filter((g) => g.status === s.id)}
+                  games={shelfGames(s.id)}
                   onOpen={setOpenId}
                   emptyText={s.empty}
                 />

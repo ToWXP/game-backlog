@@ -9,6 +9,7 @@ import {
   MinusIcon,
   PlusIcon,
   RefreshIcon,
+  StarIcon,
   TrashIcon,
 } from './Icons';
 import Metacritic from './Metacritic';
@@ -103,6 +104,26 @@ function Hours({ game, onUpdate }) {
   );
 }
 
+function Rating({ value = 0, onChange }) {
+  return (
+    <div className="rating" role="radiogroup" aria-label="Your rating">
+      {[1, 2, 3, 4, 5].map((n) => (
+        <button
+          key={n}
+          type="button"
+          className={`star ${n <= value ? 'filled' : ''}`}
+          role="radio"
+          aria-checked={n === value}
+          aria-label={`${n} star${n === 1 ? '' : 's'}`}
+          onClick={() => onChange(n === value ? 0 : n)}
+        >
+          <StarIcon />
+        </button>
+      ))}
+    </div>
+  );
+}
+
 export default function GameModal({ game, onClose, onUpdate, onRemove, onRefresh }) {
   const [shotIndex, setShotIndex] = useState(null);
   const [expanded, setExpanded] = useState(false);
@@ -172,7 +193,12 @@ export default function GameModal({ game, onClose, onUpdate, onRemove, onRefresh
           ))}
         </div>
 
-        <Hours game={game} onUpdate={onUpdate} />
+        <div className="rating-row">
+          <Rating value={game.rating ?? 0} onChange={(rating) => onUpdate({ rating })} />
+          {game.finishedAt && <span className="finished-note">Finished on {new Date(game.finishedAt).toLocaleDateString()}</span>}
+        </div>
+
+        {game.status !== 'wishlist' && <Hours game={game} onUpdate={onUpdate} />}
 
         {(game.genres?.length > 0 || game.platforms?.length > 0) && (
           <dl className="facts">
@@ -201,6 +227,18 @@ export default function GameModal({ game, onClose, onUpdate, onRemove, onRefresh
             )}
           </div>
         )}
+
+        <div className="notes-field">
+          <label htmlFor="notes">Your notes</label>
+          <textarea
+            id="notes"
+            className="notes"
+            rows={4}
+            placeholder="Thoughts, spoilers, where you left off…"
+            value={game.notes ?? ''}
+            onChange={(e) => onUpdate({ notes: e.target.value })}
+          />
+        </div>
 
         {shots.length > 0 && (
           <div className="shots">

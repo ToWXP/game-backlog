@@ -1,6 +1,13 @@
 // Order here is the order shelves appear in the bookcase.
 export const STATUSES = [
   {
+    id: 'wishlist',
+    label: 'Wishlist',
+    shelf: 'Wishlist',
+    color: '#b3489a',
+    empty: 'Nothing on your wishlist yet.',
+  },
+  {
     id: 'playing',
     label: 'Playing',
     shelf: 'Currently playing',

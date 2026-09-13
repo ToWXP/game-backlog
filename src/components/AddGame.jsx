@@ -45,7 +45,7 @@ export default function AddGame({ hasKey, ownedIds, onAdd, onOpenExisting, onNee
     return () => document.removeEventListener('mousedown', onDown);
   }, []);
 
-  async function pick(result) {
+  async function pick(result, status) {
     if (addingId) return;
     if (ownedIds.has(result.rawgId)) {
       setOpen(false);
@@ -54,7 +54,7 @@ export default function AddGame({ hasKey, ownedIds, onAdd, onOpenExisting, onNee
     }
     setAddingId(result.rawgId);
     try {
-      if (await onAdd(result)) {
+      if (await onAdd(result, status)) {
         setQuery('');
         setResults([]);
         setState('idle');
@@ -103,30 +103,46 @@ export default function AddGame({ hasKey, ownedIds, onAdd, onOpenExisting, onNee
     body = results.map((r, i) => {
       const owned = ownedIds.has(r.rawgId);
       return (
-        <button
+        <div
           key={r.rawgId}
-          type="button"
           role="option"
           aria-selected={i === active}
           className={`result ${i === active ? 'active' : ''}`}
           onMouseEnter={() => setActive(i)}
-          onClick={() => pick(r)}
-          disabled={addingId !== null}
         >
-          <RawgImg src={r.cover} width={200} className="result-thumb" />
-          <span className="result-main">
-            <span className="result-title">{r.title}</span>
-            <span className="result-meta">{r.released?.slice(0, 4) ?? 'TBA'}</span>
-          </span>
+          <button
+            type="button"
+            className="result-info"
+            onClick={() => pick(r)}
+            disabled={addingId !== null}
+          >
+            <RawgImg src={r.cover} width={200} className="result-thumb" />
+            <span className="result-main">
+              <span className="result-title">{r.title}</span>
+              <span className="result-meta">{r.released?.slice(0, 4) ?? 'TBA'}</span>
+            </span>
+          </button>
+          <Metacritic score={r.metacritic} size="sm" />
           {addingId === r.rawgId ? (
             <span className="spinner spinner-light" />
           ) : owned ? (
             <span className="tag">On shelf</span>
           ) : (
-            <span className="tag tag-add">Add</span>
+            <span className="result-actions">
+              <button type="button" className="tag tag-add" onClick={() => pick(r)} disabled={addingId !== null}>
+                + Backlog
+              </button>
+              <button
+                type="button"
+                className="tag tag-wishlist"
+                onClick={() => pick(r, 'wishlist')}
+                disabled={addingId !== null}
+              >
+                + Wishlist
+              </button>
+            </span>
           )}
-          <Metacritic score={r.metacritic} size="sm" />
-        </button>
+        </div>
       );
     });
   }
